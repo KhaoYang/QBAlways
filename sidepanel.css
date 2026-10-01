@@ -1,0 +1,171 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f6f2e8;
+  --surface: #fffdf7;
+  --surface-strong: #ffffff;
+  --text: #211d15;
+  --muted: #6d6557;
+  --line: #d8cebb;
+  --accent: #795b16;
+  --accent-bright: #f1c75b;
+  --accent-soft: #f9e9b9;
+  --error: #a6342d;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background:
+    radial-gradient(circle at 90% 0%, rgb(241 199 91 / 22%), transparent 34%),
+    var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 0;
+  min-width: 300px;
+}
+
+.masthead {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  padding: 18px 18px 14px;
+}
+
+.brand-mark {
+  align-items: center;
+  background: var(--accent-bright);
+  border: 1px solid var(--accent);
+  border-radius: 12px 12px 12px 4px;
+  color: #211a09;
+  display: flex;
+  font-family: Georgia, serif;
+  font-size: 24px;
+  font-weight: 800;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+h1 { font-family: Georgia, serif; font-size: 21px; line-height: 1; margin: 0 0 5px; }
+.masthead p { color: var(--muted); font-size: 12px; margin: 0; }
+main { padding: 16px; }
+
+.search-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgb(61 45 15 / 7%);
+  padding: 14px;
+}
+
+label { display: block; font-size: 12px; font-weight: 700; }
+.search-row { display: flex; gap: 8px; margin-top: 7px; }
+
+input[type="search"], select {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  min-width: 0;
+}
+
+input[type="search"] { flex: 1; padding: 9px 10px; }
+select { margin-top: 5px; padding: 7px 8px; width: 100%; }
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible, a:focus-visible {
+  outline: 3px solid rgb(56 116 255 / 35%);
+  outline-offset: 2px;
+}
+
+button {
+  background: var(--accent);
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font: 700 13px/1 system-ui, sans-serif;
+  padding: 0 14px;
+}
+
+button:hover { filter: brightness(1.08); }
+button:disabled { cursor: wait; opacity: .6; }
+details { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
+summary { color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 700; }
+.filters { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; padding-top: 12px; }
+.checkbox-label { align-items: center; display: flex; gap: 7px; grid-column: 1 / -1; font-weight: 600; }
+.status { color: var(--muted); font-size: 12px; line-height: 1.45; margin: 14px 2px 10px; }
+.status.error { color: var(--error); }
+.results { display: grid; gap: 10px; }
+
+.section-heading {
+  align-items: baseline;
+  display: flex;
+  font-family: Georgia, serif;
+  font-size: 16px;
+  justify-content: space-between;
+  margin: 8px 2px 0;
+}
+
+.section-heading span { color: var(--muted); font-family: system-ui, sans-serif; font-size: 11px; font-weight: 500; }
+
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.result-meta {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  font-size: 10px;
+  gap: 7px;
+  padding: 8px 11px;
+}
+
+.kind {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: #5d450d;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  padding: 3px 6px;
+  text-transform: uppercase;
+}
+
+.result-body { padding: 11px; }
+.question { font-family: Georgia, serif; font-size: 13px; line-height: 1.5; margin: 0; }
+.answer { color: var(--accent); font-size: 12px; font-weight: 700; line-height: 1.4; margin: 9px 0 0; }
+mark { background: var(--accent-bright); border-radius: 2px; color: #211a09; padding: 0 1px; }
+
+.empty {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 24px 18px;
+  text-align: center;
+}
+
+footer { color: var(--muted); font-size: 11px; padding: 0 18px 18px; text-align: center; }
+a { color: var(--accent); }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171510;
+    --surface: #211e18;
+    --surface-strong: #29251e;
+    --text: #f5efe2;
+    --muted: #b9ae9b;
+    --line: #474034;
+    --accent: #d0a741;
+    --accent-soft: #4c3c18;
+    --error: #ff8c82;
+  }
+  button { color: #211a09; }
+  .kind { color: #f7dea0; }
+}

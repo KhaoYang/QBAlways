@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>QBAlways</title>
+    <link rel="stylesheet" href="sidepanel.css">
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="brand-mark" aria-hidden="true">Q</div>
+      <div>
+        <h1>QBAlways</h1>
+        <p>Selected-text search for QBReader</p>
+      </div>
+    </header>
+
+    <main>
+      <form id="search-form" class="search-card">
+        <label for="query">Search the question database</label>
+        <div class="search-row">
+          <input id="query" name="query" type="search" autocomplete="off" maxlength="300" placeholder="Select text on a page…" required>
+          <button type="submit">Search</button>
+        </div>
+
+        <details>
+          <summary>Search options</summary>
+          <div class="filters">
+            <label>
+              Question type
+              <select id="question-type">
+                <option value="all">Tossups and bonuses</option>
+                <option value="tossup">Tossups only</option>
+                <option value="bonus">Bonuses only</option>
+              </select>
+            </label>
+            <label>
+              Search within
+              <select id="search-type">
+                <option value="all">Questions and answers</option>
+                <option value="question">Question text</option>
+                <option value="answer">Answerlines</option>
+              </select>
+            </label>
+            <label class="checkbox-label">
+              <input id="exact-phrase" type="checkbox" checked>
+              Match the selected phrase
+            </label>
+          </div>
+        </details>
+      </form>
+
+      <section aria-live="polite" aria-atomic="true">
+        <p id="status" class="status">Select text on any webpage, then click the QBReader button.</p>
+      </section>
+      <section id="results" class="results" aria-label="Search results"></section>
+    </main>
+
+    <footer>
+      Results from <a href="https://www.qbreader.org/" target="_blank" rel="noreferrer">QBReader</a>
+    </footer>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>
