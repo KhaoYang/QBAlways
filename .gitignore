@@ -2,3 +2,8 @@
 Thumbs.db
 *.zip
 .chrome-test-profile/
+**/target/
+.idea/
+*.iml
+__pycache__/
+*.pyc
