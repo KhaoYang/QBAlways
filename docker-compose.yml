@@ -1,0 +1,80 @@
+services:
+  solr:
+    image: solr:10.0
+    command: ["solr-precreate", "qbalways"]
+    ports:
+      - "8983:8983"
+    volumes:
+      - solr-data:/var/solr
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8983/solr/qbalways/admin/ping >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: qbalways
+      POSTGRES_USER: qbalways
+      POSTGRES_PASSWORD: qbalways
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qbalways -d qbalways"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  search-service:
+    build:
+      context: ./backend
+      dockerfile: search-service/Dockerfile
+    environment:
+      SOLR_URL: http://solr:8983
+      SOLR_COLLECTION: qbalways
+    ports:
+      - "8080:8080"
+    depends_on:
+      solr:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/actuator/health/readiness | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+
+  indexer-service:
+    build:
+      context: ./backend
+      dockerfile: indexer-service/Dockerfile
+    environment:
+      SOLR_URL: http://solr:8983
+      SOLR_COLLECTION: qbalways
+      DATABASE_URL: jdbc:postgresql://postgres:5432/qbalways
+      DATABASE_USER: qbalways
+      DATABASE_PASSWORD: qbalways
+      QB_READER_REQUESTS_PER_SECOND: 12
+      SCHEDULED_SYNC_ENABLED: "false"
+    ports:
+      - "8081:8081"
+    depends_on:
+      solr:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8081/actuator/health/readiness | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+
+volumes:
+  solr-data:
+  postgres-data:
