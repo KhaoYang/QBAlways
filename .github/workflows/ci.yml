@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Test Java services
+        working-directory: backend
+        run: mvn --batch-mode verify
+
+  extension-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate extension JavaScript and manifest
+        run: |
+          node --check background.js
+          node --check content.js
+          node --check sidepanel.js
+          node -e "JSON.parse(require('fs').readFileSync('manifest.json', 'utf8'))"
