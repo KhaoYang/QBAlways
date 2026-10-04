@@ -1,0 +1,34 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: qbalways-indexer-service
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/qbalways}
+    username: ${DATABASE_USER:qbalways}
+    password: ${DATABASE_PASSWORD:qbalways}
+  sql:
+    init:
+      mode: always
+
+qbalways:
+  qbreader:
+    url: ${QB_READER_URL:https://www.qbreader.org/api}
+    requests-per-second: ${QB_READER_REQUESTS_PER_SECOND:12}
+  solr:
+    url: ${SOLR_URL:http://localhost:8983}
+    collection: ${SOLR_COLLECTION:qbalways}
+  sync:
+    enabled: ${SCHEDULED_SYNC_ENABLED:false}
+    cron: ${SYNC_CRON:0 0 3 * * *}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
