@@ -1,4 +1,5 @@
-const API_URL = "https://www.qbreader.org/api/query";
+const PLATFORM_API_URL = "http://localhost:8080/api/search";
+const QBREADER_API_URL = "https://www.qbreader.org/api/query";
 const PAGE_SIZE = 10;
 
 const form = document.querySelector("#search-form");
@@ -44,9 +45,47 @@ async function search(rawQuery) {
   activeRequest?.abort();
   activeRequest = new AbortController();
   setLoading(true);
-  setStatus(`Searching QBReader for “${truncate(query, 80)}”…`);
+  setStatus(`Searching for "${truncate(query, 80)}"...`);
   results.replaceChildren();
 
+  try {
+    const platformResult = await searchPlatform(query, activeRequest.signal);
+    if (platformResult.total > 0) {
+      renderPlatformResults(platformResult, query);
+      return;
+    }
+
+    const qbReaderResult = await searchQbReader(query, activeRequest.signal);
+    renderQbReaderResults(qbReaderResult, query, "The local index had no matches; showing QBReader results.");
+  } catch (platformError) {
+    if (platformError.name === "AbortError") return;
+
+    try {
+      const qbReaderResult = await searchQbReader(query, activeRequest.signal);
+      renderQbReaderResults(qbReaderResult, query, "Local search is offline; showing QBReader results.");
+    } catch (fallbackError) {
+      if (fallbackError.name === "AbortError") return;
+      setStatus("Search could not be completed. Check the local services or try again.", true);
+    }
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function searchPlatform(query, signal) {
+  const params = new URLSearchParams({
+    q: query,
+    type: questionType.value.toUpperCase(),
+    within: searchType.value.toUpperCase(),
+    exact: String(exactPhrase.checked),
+    size: String(PAGE_SIZE * 2)
+  });
+  const response = await fetch(`${PLATFORM_API_URL}?${params}`, { signal });
+  if (!response.ok) throw new Error(`Search platform returned ${response.status}`);
+  return response.json();
+}
+
+async function searchQbReader(query, signal) {
   const params = new URLSearchParams({
     q: query,
     questionType: questionType.value,
@@ -54,57 +93,62 @@ async function search(rawQuery) {
     exactPhrase: String(exactPhrase.checked),
     maxReturnLength: String(PAGE_SIZE)
   });
-
-  try {
-    const response = await fetch(`${API_URL}?${params}`, {
-      signal: activeRequest.signal
-    });
-    if (!response.ok) throw new Error(`QBReader returned ${response.status}`);
-
-    const data = await response.json();
-    renderResults(data, query);
-  } catch (error) {
-    if (error.name === "AbortError") return;
-    setStatus("The QBReader search could not be completed. Please try again.", true);
-  } finally {
-    setLoading(false);
-  }
+  const response = await fetch(`${QBREADER_API_URL}?${params}`, { signal });
+  if (!response.ok) throw new Error(`QBReader returned ${response.status}`);
+  return response.json();
 }
 
-function renderResults(data, query) {
+function renderPlatformResults(data, query) {
+  setStatus(`${formatCount(data.total, "ranked match")} - ${data.tookMs} ms - Solr index`);
+  renderSection("Ranked results", data.results ?? [], data.total, query, true);
+}
+
+function renderQbReaderResults(data, query, notice = "") {
   const tossups = data.tossups?.questionArray ?? [];
   const bonuses = data.bonuses?.questionArray ?? [];
   const tossupCount = data.tossups?.count ?? 0;
   const bonusCount = data.bonuses?.count ?? 0;
+  const counts = `${formatCount(tossupCount, "tossup")} - ${formatCount(bonusCount, "bonus")}`;
 
-  setStatus(`${formatCount(tossupCount, "tossup")} · ${formatCount(bonusCount, "bonus")}`);
+  setStatus(notice ? `${notice} ${counts}` : counts);
 
   if (!tossups.length && !bonuses.length) {
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "No matches found. Try turning off phrase matching or selecting fewer words.";
-    results.append(empty);
+    renderEmpty();
     return;
   }
 
-  if (tossups.length) renderSection("Tossups", tossups, tossupCount, "tossup", query);
-  if (bonuses.length) renderSection("Bonuses", bonuses, bonusCount, "bonus", query);
+  if (tossups.length) renderSection("Tossups", tossups, tossupCount, query, false, "tossup");
+  if (bonuses.length) renderSection("Bonuses", bonuses, bonusCount, query, false, "bonus");
 }
 
-function renderSection(title, items, total, kind, query) {
+function renderSection(title, items, total, query, isPlatform, fallbackKind) {
+  if (!items.length) {
+    renderEmpty();
+    return;
+  }
+
   const heading = document.createElement("h2");
   heading.className = "section-heading";
   heading.append(document.createTextNode(title));
-
   const count = document.createElement("span");
   count.textContent = `showing ${items.length} of ${total.toLocaleString()}`;
   heading.append(count);
   results.append(heading);
 
-  for (const item of items) results.append(createResultCard(item, kind, query));
+  for (const item of items) {
+    const kind = isPlatform ? item.questionType : fallbackKind;
+    results.append(createResultCard(item, kind, query, isPlatform));
+  }
 }
 
-function createResultCard(item, kind, query) {
+function renderEmpty() {
+  const empty = document.createElement("div");
+  empty.className = "empty";
+  empty.textContent = "No matches found. Try turning off phrase matching or selecting fewer words.";
+  results.append(empty);
+}
+
+function createResultCard(item, kind, query, isPlatform) {
   const card = document.createElement("article");
   card.className = "result-card";
 
@@ -114,18 +158,20 @@ function createResultCard(item, kind, query) {
   badge.className = "kind";
   badge.textContent = kind;
   const source = document.createElement("span");
-  source.textContent = buildSource(item);
+  source.textContent = isPlatform ? buildPlatformSource(item) : buildQbReaderSource(item);
   meta.append(badge, source);
 
   const body = document.createElement("div");
   body.className = "result-body";
   const question = document.createElement("p");
   question.className = "question";
-  appendHighlightedText(question, excerpt(questionText(item, kind), query), query);
+  const bodyText = isPlatform ? item.questionText ?? "" : questionText(item, kind);
+  appendHighlightedText(question, excerpt(bodyText, query), query);
 
   const answer = document.createElement("p");
   answer.className = "answer";
-  appendHighlightedText(answer, answerText(item, kind), query);
+  const answerValue = isPlatform ? item.answerText ?? "" : answerText(item, kind);
+  appendHighlightedText(answer, answerValue, query);
 
   body.append(question, answer);
   card.append(meta, body);
@@ -139,28 +185,36 @@ function questionText(item, kind) {
 
 function answerText(item, kind) {
   if (kind === "tossup") return item.answer_sanitized ?? "";
-  return (item.answers_sanitized ?? []).join(" • ");
+  return (item.answers_sanitized ?? []).join(" / ");
 }
 
-function buildSource(item) {
-  const pieces = [
+function buildPlatformSource(item) {
+  return [
+    item.setName,
+    item.packetName ? `Packet ${item.packetName}` : null,
+    item.category,
+    Number.isFinite(item.difficulty) ? `Difficulty ${item.difficulty}` : null
+  ].filter(Boolean).join(" - ");
+}
+
+function buildQbReaderSource(item) {
+  return [
     item.set?.name,
     item.packet?.name ? `Packet ${item.packet.name}` : null,
     item.category,
     Number.isFinite(item.difficulty) ? `Difficulty ${item.difficulty}` : null
-  ];
-  return pieces.filter(Boolean).join(" · ");
+  ].filter(Boolean).join(" - ");
 }
 
 function excerpt(text, query) {
   const compact = text.replace(/\s+/g, " ").trim();
   const index = compact.toLocaleLowerCase().indexOf(query.toLocaleLowerCase());
   if (compact.length <= 430) return compact;
-  if (index < 0) return `${compact.slice(0, 427)}…`;
+  if (index < 0) return `${compact.slice(0, 427)}...`;
 
   const start = Math.max(0, index - 155);
   const end = Math.min(compact.length, index + query.length + 245);
-  return `${start ? "…" : ""}${compact.slice(start, end)}${end < compact.length ? "…" : ""}`;
+  return `${start ? "..." : ""}${compact.slice(start, end)}${end < compact.length ? "..." : ""}`;
 }
 
 function appendHighlightedText(element, text, query) {
@@ -193,7 +247,7 @@ function setStatus(message, isError = false) {
 
 function setLoading(isLoading) {
   submitButton.disabled = isLoading;
-  submitButton.textContent = isLoading ? "Searching…" : "Search";
+  submitButton.textContent = isLoading ? "Searching..." : "Search";
 }
 
 function formatCount(count, label) {
@@ -201,5 +255,5 @@ function formatCount(count, label) {
 }
 
 function truncate(text, length) {
-  return text.length > length ? `${text.slice(0, length - 1)}…` : text;
+  return text.length > length ? `${text.slice(0, length - 3)}...` : text;
 }
