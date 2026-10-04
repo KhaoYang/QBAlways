@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "QBAlways",
-  "version": "0.1.0",
-  "description": "Search selected text in the QBReader question database.",
+  "version": "0.2.0",
+  "description": "Rank selected text against an indexed QBReader question corpus.",
   "minimum_chrome_version": "116",
   "permissions": [
     "contextMenus",
@@ -10,7 +10,8 @@
     "storage"
   ],
   "host_permissions": [
-    "https://www.qbreader.org/*"
+    "https://www.qbreader.org/*",
+    "http://localhost:8080/*"
   ],
   "background": {
     "service_worker": "background.js"
